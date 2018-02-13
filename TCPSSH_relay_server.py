@@ -4,7 +4,7 @@
 
 ##### Script description
 #this script has two main parts
-# 1. A TCP server is opened for client connection (labwindows automation in this case).
+# 1. A TCP server is opened for client connection 
 # 2. During some init from the TCP connection, an SSH connection is established at a provided IP, user, pass.  
 #    Further communication between the TCP connection and the SSH connection is passed through this channel. 
 # Command Line Arguments (Optional):
@@ -52,16 +52,17 @@ if __name__ == "__main__":
   chan=""
   
   #Detect optional arguments for ip, user, pass
+  #Only valid if all three inputs are provided.
   if len(sys.argv) == 4:
     SSH_serverIP = sys.argv[1]
     SSH_user = sys.argv[2]
     SSH_pass = sys.argv[3]
 
+  #Create SSH client via Paramiko
   ssh = paramiko.SSHClient()
   #paramiko.util.log_to_file("filename.log")
   SERVER_PORT = 49589
   server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-  # this has no effect, why ?
   server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
   
   # Try desired port, if unavailable increment until you find one
@@ -74,9 +75,11 @@ if __name__ == "__main__":
 
   # CONNECTION_LIST for the socket objects / address / port  
   # Add server socket to the list of readable connections
+  # First entry in CONNECTION_LIST is always the server
   CONNECTION_LIST.append([server_socket,"0.0.0.0",SERVER_PORT])
 
   print "Chat server started on port " + str(SERVER_PORT)
+  # Request SSH details from the user if they weren't provided on launch
   if len(sys.argv) < 4:
     print "To establish SSH connection enter the following details"
     print "ip:x.x.x.x"
@@ -89,7 +92,7 @@ if __name__ == "__main__":
     socket_list = [item[0] for item in CONNECTION_LIST] #get first item of each item in CONNECTION_LIST
     read_sockets, write_sockets, error_sockets = select.select(socket_list, [], [])
     #passing the server socket as connection of potential readers
-    #Check for data from SSH connection if open
+    #Check for data from SSH connection if open, and pass to client (TCP connection)
     if SSH_conn == 1:
       try:
         chan_BUFFER = chan.recv(4096)
@@ -153,6 +156,7 @@ if __name__ == "__main__":
                     type(stdin)        
                     print stdout.readlines()
             else:
+			  # SSH is connected, check if incoming command is an SSH command.  If not, pass on via SSH connection.
               temp = data.split('kevinSSH:')
               if len(temp) == 2:
                 print "Sending to SSH Server:" + temp[1]
